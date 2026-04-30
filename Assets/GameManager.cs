@@ -20,7 +20,7 @@ public class GameManager : MonoBehaviour
         [System.Serializable]
         public struct MovementNode
         {
-            [SerializeField] Position nodePosition;
+            [SerializeField, Tooltip("Local x & y position (Relative to 'Grid' in heirarchy) - Middle of grid tile\nOnly valid pathways required")] Position nodePosition;
             [SerializeField] int[] nextConnectedNodeIndexes;
             [SerializeField] int[] previousConnectedNodeIndexes;
             
@@ -47,11 +47,33 @@ public class GameManager : MonoBehaviour
             [SerializeField] Position pos;
         }
 
-        [SerializeField] UnityEngine.UI.Image backgroundImage;
+        [SerializeField] GameObject backgroundObj;
         [SerializeField] MovementNode[] nodes;
         [SerializeField] SpawnPoints spawns;
         [SerializeField] Turret[] turrets;
+
+        public GameObject GetBackgroundObj()
+        {
+            return backgroundObj;
+        }
+
+        public MovementNode[] GetNodes()
+        {
+            return nodes;
+        }
+
+        public SpawnPoints GetSpawnPoints()
+        {
+            return spawns;
+        }
+
+        public Turret[] GetTurrets()
+        {
+            return turrets;
+        }
     }
+
+    [SerializeField] Level[] possibleLevels;
 
     // Start is called before the first frame update
     void Start()
