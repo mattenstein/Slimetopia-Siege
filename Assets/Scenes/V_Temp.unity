@@ -2241,8 +2241,8 @@ MonoBehaviour:
           x: 0.5
           y: 4.5
     turrets: []
-  goodMinionPrefab: {fileID: 0}
-  hostileMinionPrefab: {fileID: 0}
+  goodMinionPrefab: {fileID: 2178609968172450239, guid: 7ab11304a5aaa784e804a999481894ab, type: 3}
+  hostileMinionPrefab: {fileID: 7213530880276330752, guid: 22828531cc839604e9807108d32346cc, type: 3}
 --- !u!4 &1290978890
 Transform:
   m_ObjectHideFlags: 0
