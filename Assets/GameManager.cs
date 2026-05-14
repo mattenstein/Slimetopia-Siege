@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
@@ -33,14 +34,54 @@ public class GameManager : MonoBehaviour
             return nodePosition;
         }
 
-        public MovementNode[] GetNextConnectedNodes()
+        public List<MovementNode>/*MovementNode[]*/ GetNextConnectedNodes()
         {
-            return nextConnectedNodes;
+            List<MovementNode> result = new List<MovementNode>();
+            foreach (MovementNode node in nextConnectedNodes)
+            {
+                result.Add(node);
+            }
+            return result;
+            //return nextConnectedNodes;
         }
 
-        public MovementNode[] GetPreviousConnectedNodes()
+        public List<MovementNode> GetPreviousConnectedNodes()
         {
-            return previousConnectedNodes;
+            List<MovementNode> result = new List<MovementNode>();
+            foreach (MovementNode node in previousConnectedNodes)
+            {
+                result.Add(node);
+            }
+            return result;
+        }
+
+        public int[] GetNextNodeIndexes()
+        {
+            return nextConnectedNodeIndexes;
+        }
+
+        public int[] GetPreviousNodeIndexes()
+        {
+            return previousConnectedNodeIndexes;
+        }
+
+        public void SetNextNodeArray(MovementNode[] _nodes)
+        {
+            nextConnectedNodes = _nodes;
+        }
+
+        public void SetPreviousNodeArray(MovementNode[] _nodes)
+        {
+            previousConnectedNodes = _nodes;
+        }
+
+        public void CheckNode()
+        {
+            Debug.Log(nodePosition.GetXY());
+            Debug.Log("NextConnectedNodeIndexes size = " + nextConnectedNodeIndexes.Length);
+            Debug.Log("NextConnectedNodes size = " + nextConnectedNodes.Length);
+            Debug.Log("PreviousConnectedNodeIndexes size = " + previousConnectedNodeIndexes.Length);
+            Debug.Log("PreviousConnectedNodes size = " + previousConnectedNodes.Length);
         }
     }
 
@@ -124,11 +165,75 @@ public class GameManager : MonoBehaviour
         {
             return turrets;
         }
+
+        public void SetupNodes()
+        {
+            int j = 0;
+            foreach(var node in nodes)
+            {
+                // get indexes + setup arrays
+                int[] tempNextIndexes = node.GetNextNodeIndexes();
+                int[] tempPreviousIndexes = node.GetPreviousNodeIndexes();
+
+                //Debug.Log("Element " + j + " @ " + node.GetPosition().GetXY() + "\nNext Indexes size = " + tempNextIndexes.Length + "\nPrevious Indexes size = " + tempPreviousIndexes.Length);
+                string debugLog1 = "Element " + j + " @ " + node.GetPosition().GetXY();
+                string debugLog2 = "\nNext Indexes size = " + tempNextIndexes.Length + " \nIndexes = ";
+                foreach (int index in tempNextIndexes)
+                {
+                    debugLog2 = debugLog2 + index.ToString() + ", ";
+                }
+                debugLog2 = debugLog2.Remove(debugLog2.Length - 2);
+                string debugLog3 = "\nPrevious Indexes size = " + tempPreviousIndexes.Length + " \nIndexes = ";
+                foreach (int index in tempPreviousIndexes)
+                {
+                    debugLog3 = debugLog3 + index.ToString() + ", ";
+                }
+                debugLog3 = debugLog3.Remove(debugLog3.Length - 2);
+
+                // only do things if there are indexes in array
+                if (tempNextIndexes.Length > 0)
+                {
+                    MovementNode[] tempNodes = new MovementNode[tempNextIndexes.Length];
+                    for (int i = 0; i < tempNextIndexes.Length; i++)
+                    {
+                        tempNodes[i] = nodes[tempNextIndexes[i]];
+                    }
+                    node.SetNextNodeArray(tempNodes);
+                }
+                else node.SetNextNodeArray(null);
+                if (tempPreviousIndexes.Length > 0)
+                {
+                    MovementNode[] tempNodes = new MovementNode[tempPreviousIndexes.Length];
+                    for (int i = 0; i < tempPreviousIndexes.Length; i++)
+                    {
+                        tempNodes[i] = nodes[tempPreviousIndexes[i]];
+                    }
+                    node.SetPreviousNodeArray(tempNodes);
+                }
+                else node.SetPreviousNodeArray(null);
+
+                //Debug.Log(debugLog1 + debugLog2 + debugLog3);
+                j++;
+            }
+        }
+
+        public void CheckNode(int _index)
+        {
+            Debug.Log("Element " + _index + " @ " + nodes[_index].GetPosition().GetXY() + "\n ");
+        }
+
+        public void CheckNodes(int _i)
+        {
+            Debug.Log(nodes[_i].GetPosition().GetXY());
+            int[] nextNodeIndexes = nodes[_i].GetNextNodeIndexes();
+            if (nextNodeIndexes.Length != 0) CheckNodes(nextNodeIndexes[0]);
+        }
     }
 
     [SerializeField] Level[] possibleLevels;
 
-    [SerializeField] GameObject goodMinion;
+    [SerializeField] GameObject goodMinionPrefab;
+    [SerializeField] GameObject hostileMinionPrefab;
 
     List<GameObject> goodMinions;
     List<GameObject> hostileMinions;
@@ -137,14 +242,28 @@ public class GameManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        // initialise lists
         goodMinions = new List<GameObject>();
         hostileMinions = new List<GameObject>();
+
+        // get nodes for minion pathing
+        possibleLevels[0].SetupNodes();
+        //possibleLevels[0].CheckNodes(0);
+        nodes = possibleLevels[0].GetNodes();
+        //Debug.Log(nodes.Length);
+        foreach(var node in nodes)
+        {
+            node.CheckNode();
+        }
+
+        // spawn good minion for testing
         Vector2 tempVec = possibleLevels[0].GetSpawnPoints().GetFriendlySpawnPoints()[0].GetPosition().GetXY();
-        GameObject temp = Instantiate(goodMinion, tempVec, Quaternion.identity, transform);
+        GameObject temp = Instantiate(goodMinionPrefab, tempVec, Quaternion.identity, transform);
         temp.AddComponent<MinionManager>();
         temp.GetComponent<MinionManager>().SetupMinion(nodes[0].GetPosition().GetXY());
         goodMinions.Add(temp);
-        nodes = possibleLevels[0].GetNodes();
+
+        
     }
 
     // Update is called once per frame
@@ -168,8 +287,19 @@ public class GameManager : MonoBehaviour
                     // is this the current target node (old node)
                     if (oldTarget == node.GetPosition().GetXY())
                     {
-                        minion.GetComponent<MinionManager>().UpdateTargetPosition(node.GetNextConnectedNodes()[0].GetPosition().GetXY());
+                        // only really does something if tempNodes has more than one node in it, otherwise will just get next node
+                        //MovementNode[] tempNodes = new MovementNode[node.GetNextNodeIndexes().Length];
+                        //tempNodes = node.GetNextConnectedNodes();
+                        List<MovementNode> tempNodes = node.GetNextConnectedNodes();
+                        //Debug.Log(tempNodes.Length);
+                        //Debug.Log(node.GetNextConnectedNodes().Length);
+                        //int index = Random.Range(0, tempNodes.Length);
+                        int index = Random.Range(0, tempNodes.Count);
+
+                        // update the minion target and reset atTarget check on minion
+                        minion.GetComponent<MinionManager>().UpdateTargetPosition(node.GetNextConnectedNodes()[index].GetPosition().GetXY());
                         minion.GetComponent<MinionManager>().ResetAtTarget();
+                        // after target node + atTarget updated break loop to do everything again with next minion
                         break;
                     }
                 }
