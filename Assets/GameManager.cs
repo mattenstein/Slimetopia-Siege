@@ -237,7 +237,7 @@ public class GameManager : MonoBehaviour
 
     List<GameObject> goodMinions;
     List<GameObject> hostileMinions;
-    MovementNode[] nodes;
+    //MovementNode[] nodes;
 
     // Start is called before the first frame update
     void Start()
@@ -249,18 +249,18 @@ public class GameManager : MonoBehaviour
         // get nodes for minion pathing
         possibleLevels[0].SetupNodes();
         //possibleLevels[0].CheckNodes(0);
-        nodes = possibleLevels[0].GetNodes();
-        //Debug.Log(nodes.Length);
-        foreach(var node in nodes)
-        {
-            node.CheckNode();
-        }
+        //nodes = possibleLevels[0].GetNodes();
+        ////Debug.Log(nodes.Length);
+        //foreach(var node in nodes)
+        //{
+        //    node.CheckNode();
+        //}
 
         // spawn good minion for testing
         Vector2 tempVec = possibleLevels[0].GetSpawnPoints().GetFriendlySpawnPoints()[0].GetPosition().GetXY();
         GameObject temp = Instantiate(goodMinionPrefab, tempVec, Quaternion.identity, transform);
         temp.AddComponent<MinionManager>();
-        temp.GetComponent<MinionManager>().SetupMinion(nodes[0].GetPosition().GetXY());
+        temp.GetComponent<MinionManager>().SetupMinion(possibleLevels[0].GetNodes()[0].GetPosition().GetXY());
         goodMinions.Add(temp);
 
         
@@ -269,6 +269,7 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // basically reverse everything in this for hostile minions
         foreach(var minion in goodMinions)
         {
             // iterate through list of minions
@@ -281,27 +282,33 @@ public class GameManager : MonoBehaviour
             else // if we are at target position
             {
                 Vector2 oldTarget = minion.GetComponent<MinionManager>().GetTargetPosition();
-                // iterate through nodes to find next node
-                foreach (var node in nodes)
-                {
-                    // is this the current target node (old node)
-                    if (oldTarget == node.GetPosition().GetXY())
-                    {
-                        // only really does something if tempNodes has more than one node in it, otherwise will just get next node
-                        //MovementNode[] tempNodes = new MovementNode[node.GetNextNodeIndexes().Length];
-                        //tempNodes = node.GetNextConnectedNodes();
-                        List<MovementNode> tempNodes = node.GetNextConnectedNodes();
-                        //Debug.Log(tempNodes.Length);
-                        //Debug.Log(node.GetNextConnectedNodes().Length);
-                        //int index = Random.Range(0, tempNodes.Length);
-                        int index = Random.Range(0, tempNodes.Count);
 
-                        // update the minion target and reset atTarget check on minion
-                        minion.GetComponent<MinionManager>().UpdateTargetPosition(node.GetNextConnectedNodes()[index].GetPosition().GetXY());
-                        minion.GetComponent<MinionManager>().ResetAtTarget();
-                        // after target node + atTarget updated break loop to do everything again with next minion
-                        break;
+                // make sure target is not the end point
+                if (oldTarget != possibleLevels[0].GetNodes()[possibleLevels[0].GetNodes().Length - 1].GetPosition().GetXY())
+                {
+                    // iterate through nodes to find next node
+                    foreach (var node in possibleLevels[0].GetNodes())
+                    {
+                        // is this the current target node (old node)
+                        if (oldTarget == node.GetPosition().GetXY())
+                        {
+                            // only really does something if tempNodes has more than one node in it, otherwise will just get next node
+                            int[] indexes = node.GetNextNodeIndexes();
+
+                            int indexesIndex = Random.Range(0, indexes.Length);
+                            int index = indexes[indexesIndex];
+
+                            // update the minion target and reset atTarget check on minion
+                            minion.GetComponent<MinionManager>().UpdateTargetPosition(possibleLevels[0].GetNodes()[index].GetPosition().GetXY()/*node.GetNextConnectedNodes()[index].GetPosition().GetXY()*/);
+                            minion.GetComponent<MinionManager>().ResetAtTarget();
+                            // after target node + atTarget updated break loop to do everything again with next minion
+                            break;
+                        }
                     }
+                }
+                else // minion is at target in the final node
+                {
+                    // do stuff? delete minion? damage enemy champion?
                 }
             }
         }
