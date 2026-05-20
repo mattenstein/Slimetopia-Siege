@@ -2,6 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Script for managing each individual minion
+/// </summary>
 public class MinionManager : MonoBehaviour
 {
     Vector2 currentTargetPosition;

@@ -2240,9 +2240,31 @@ MonoBehaviour:
       - pos:
           x: 0.5
           y: 4.5
-    turrets: []
+    turrets:
+    - pos:
+        x: 0.5
+        y: -1.5
+    - pos:
+        x: -2.5
+        y: -1.5
+    - pos:
+        x: 3.5
+        y: -1.5
+    - pos:
+        x: -2.5
+        y: 2.5
+    - pos:
+        x: 3.5
+        y: 2.5
+    - pos:
+        x: 0.5
+        y: 2.5
+    - pos:
+        x: 0.5
+        y: 4.5
   goodMinionPrefab: {fileID: 2178609968172450239, guid: 7ab11304a5aaa784e804a999481894ab, type: 3}
   hostileMinionPrefab: {fileID: 7213530880276330752, guid: 22828531cc839604e9807108d32346cc, type: 3}
+  turretPrefab: {fileID: 8114554784235146669, guid: 0ca79847e57b5e84ca82779e5c2fc66e, type: 3}
 --- !u!4 &1290978890
 Transform:
   m_ObjectHideFlags: 0

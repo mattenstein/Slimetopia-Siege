@@ -5,6 +5,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.UIElements;
 
+/// <summary>
+/// Script for managing the actual game -- equivalent to main()
+/// </summary>
 public class GameManager : MonoBehaviour
 {
     [System.Serializable]
@@ -139,6 +142,11 @@ public class GameManager : MonoBehaviour
         public struct Turret
         {
             [SerializeField] Position pos;
+
+            public Position GetPosition()
+            {
+                return pos;
+            }
         }
 
         [SerializeField] GameObject backgroundObj;
@@ -228,15 +236,31 @@ public class GameManager : MonoBehaviour
             int[] nextNodeIndexes = nodes[_i].GetNextNodeIndexes();
             if (nextNodeIndexes.Length != 0) CheckNodes(nextNodeIndexes[0]);
         }
+
+        public List<GameObject> SetupTurrets(GameObject _prefab)
+        {
+            List<GameObject> tempList = new List<GameObject>();
+            foreach (var turret in turrets)
+            {
+                GameObject temp = Instantiate(_prefab, turret.GetPosition().GetXY(), Quaternion.identity);
+                temp.AddComponent<TurretManager>();
+                temp.GetComponent<TurretManager>().Setup();
+                tempList.Add(temp);
+            }
+            return tempList;
+        }
     }
 
     [SerializeField] Level[] possibleLevels;
 
     [SerializeField] GameObject goodMinionPrefab;
     [SerializeField] GameObject hostileMinionPrefab;
+    [SerializeField] GameObject turretPrefab;
 
     List<GameObject> goodMinions;
     List<GameObject> hostileMinions;
+    List<GameObject> turrets;
+    
     //MovementNode[] nodes;
 
     // Start is called before the first frame update
@@ -255,6 +279,10 @@ public class GameManager : MonoBehaviour
         //{
         //    node.CheckNode();
         //}
+
+        // spawn turrets
+        turrets = new List<GameObject>();
+        turrets = possibleLevels[0].SetupTurrets(turretPrefab);
 
         // spawn good minion for testing
         Vector2 tempVec = possibleLevels[0].GetSpawnPoints().GetFriendlySpawnPoints()[0].GetPosition().GetXY();
@@ -311,6 +339,11 @@ public class GameManager : MonoBehaviour
                     // do stuff? delete minion? damage enemy champion?
                 }
             }
+        }
+
+        foreach(var minion in hostileMinions)
+        {
+
         }
     }
 }
