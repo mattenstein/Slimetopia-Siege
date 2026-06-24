@@ -8,9 +8,10 @@ using UnityEngine;
 public class MinionManager : MonoBehaviour
 {
     Vector2 currentTargetPosition;
-    float moveSpeed = 1.0f;
+    float moveSpeed = 0.5f;
     bool atTarget = false;
     float targetTolerance = 0.1f;
+    float minionHealth = 1.0f;
 
     // Start is called before the first frame update
     void Start()
@@ -56,5 +57,23 @@ public class MinionManager : MonoBehaviour
     public Vector2 GetTargetPosition()
     {
         return currentTargetPosition;
+    }
+
+    public void DamageThisMinion(float _damageValue)
+    {
+        Debug.Log("Damaged");
+        minionHealth -= _damageValue;
+    }
+
+    // function to let game manager kill minions and remove from list. True == alive, false == dead
+    public bool HealthCheck()
+    {
+        // should minion be dead?
+        if (minionHealth <= 0.0f)
+        {
+            // minion should be dead
+            return false;
+        }
+        return true;
     }
 }

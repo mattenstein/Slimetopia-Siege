@@ -9,8 +9,11 @@ using UnityEngine;
 public class TurretManager : MonoBehaviour
 {
     GameObject currentTarget;
+    GameObject turretShotObj;
     List<GameObject> nearbyMinions;
     float turretHealth = 1.0f;
+    bool hostileTurret = false;
+    float shotResetTimer = 0.0f;
 
     // Start is called before the first frame update
     void Start()
@@ -25,14 +28,17 @@ public class TurretManager : MonoBehaviour
         CheckHealth();
         // if turret is dead, it never makes it this far
         UpdateTarget();
+        TurretShoot();
     }
 
     // Setup this turret to be ready for use in game
-    public void Setup()
+    public void Setup(GameObject _shotPrefab, bool _isHostile)
     {
         // Set up whatever needs to be set up
         currentTarget = null;
         nearbyMinions = new List<GameObject>();
+        turretShotObj = _shotPrefab;
+        hostileTurret = _isHostile;
     }
 
     // A minion has entered the circle collider of this turret
@@ -46,7 +52,6 @@ public class TurretManager : MonoBehaviour
         {
             // add this minion to the list of nearby minions for targetting purposes
             nearbyMinions.Add(collision.gameObject);
-
             // add logic to let each minion know they are within range of a turret and need to stop within range of turret to attack it.
             // give each minion a position within range of turret to move to as their target?
         }
@@ -55,16 +60,16 @@ public class TurretManager : MonoBehaviour
     // A minion has been destroyed
     private void OnTriggerExit2D(Collider2D collision)
     {
-        // iterate through list of minions
-        foreach (var minion in nearbyMinions)
-        {
-            // if the minion which has died is the minion in focus on the current iteration
-            if (minion.GetInstanceID() == collision.GetInstanceID())
-            {
-                // this minion is dead, remove from list
-                nearbyMinions.Remove(minion);
-            }
-        }
+        //// iterate through list of minions
+        //foreach (var minion in nearbyMinions)
+        //{
+        //    // if the minion which has died is the minion in focus on the current iteration
+        //    if (minion.GetInstanceID() == collision.gameObject.GetInstanceID())
+        //    {
+        //        // this minion is dead, remove from list
+        //        nearbyMinions.Remove(minion);
+        //    }
+        //}
     }
 
     // check if we have a target
@@ -76,6 +81,7 @@ public class TurretManager : MonoBehaviour
             // if list of minions in range of turret has any minions in it, make the minion at the start of the list the target
             if (nearbyMinions.Count > 0) currentTarget = nearbyMinions[0];
         }
+        // if we already have a target, do nothing
     }
 
     // Check if turret is still alive
@@ -101,6 +107,35 @@ public class TurretManager : MonoBehaviour
         foreach (var minion in nearbyMinions)
         {
 
+        }
+    }
+
+    void TurretShoot()
+    {
+        // we have a target
+        if (currentTarget != null && shotResetTimer <= 0.0f)
+        {
+            GameObject shot = Instantiate(turretShotObj, transform.localPosition, Quaternion.identity);
+            shot.AddComponent<TurretShotManager>();
+            shot.GetComponent<TurretShotManager>().Setup(currentTarget);
+            shotResetTimer = 1.0f;
+        }
+
+        // if no target, do nothing
+
+        // update shotResetTimer
+        shotResetTimer -= Time.deltaTime;
+    }
+
+    public void CheckNearbyMinions(GameObject _minion)
+    {
+        foreach (var minion in nearbyMinions)
+        {
+            if (_minion == minion)
+            {
+                nearbyMinions.Remove(minion);
+                return;
+            }
         }
     }
 }

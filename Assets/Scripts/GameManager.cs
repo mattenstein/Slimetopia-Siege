@@ -237,14 +237,15 @@ public class GameManager : MonoBehaviour
             if (nextNodeIndexes.Length != 0) CheckNodes(nextNodeIndexes[0]);
         }
 
-        public List<GameObject> SetupTurrets(GameObject _prefab)
+        public List<GameObject> SetupTurrets(GameObject _prefab, GameObject _shotPrefab)
         {
             List<GameObject> tempList = new List<GameObject>();
             foreach (var turret in turrets)
             {
                 GameObject temp = Instantiate(_prefab, turret.GetPosition().GetXY(), Quaternion.identity);
                 temp.AddComponent<TurretManager>();
-                temp.GetComponent<TurretManager>().Setup();
+                // Add something in turret structure for if turret can be made friendly?
+                temp.GetComponent<TurretManager>().Setup(_shotPrefab, true);
                 tempList.Add(temp);
             }
             return tempList;
@@ -256,10 +257,13 @@ public class GameManager : MonoBehaviour
     [SerializeField] GameObject goodMinionPrefab;
     [SerializeField] GameObject hostileMinionPrefab;
     [SerializeField] GameObject turretPrefab;
+    [SerializeField] GameObject turretShotPrefab;
 
     List<GameObject> goodMinions;
     List<GameObject> hostileMinions;
     List<GameObject> turrets;
+
+    List<GameObject> minionsForCleanup;
     
     //MovementNode[] nodes;
 
@@ -282,68 +286,158 @@ public class GameManager : MonoBehaviour
 
         // spawn turrets
         turrets = new List<GameObject>();
-        turrets = possibleLevels[0].SetupTurrets(turretPrefab);
+        turrets = possibleLevels[0].SetupTurrets(turretPrefab, turretShotPrefab);
 
         // spawn good minion for testing
         Vector2 tempVec = possibleLevels[0].GetSpawnPoints().GetFriendlySpawnPoints()[0].GetPosition().GetXY();
-        GameObject temp = Instantiate(goodMinionPrefab, tempVec, Quaternion.identity, transform);
-        temp.AddComponent<MinionManager>();
-        temp.GetComponent<MinionManager>().SetupMinion(possibleLevels[0].GetNodes()[0].GetPosition().GetXY());
-        goodMinions.Add(temp);
 
+        for (int i = 0; i < 2; i++)
+        {
+            float tempVecY = tempVec.y - (i * 0.2f);
+            tempVec.y = tempVecY;
+            GameObject temp = Instantiate(goodMinionPrefab, tempVec, Quaternion.identity, transform);
+            temp.AddComponent<MinionManager>();
+            temp.GetComponent<MinionManager>().SetupMinion(possibleLevels[0].GetNodes()[0].GetPosition().GetXY());
+            goodMinions.Add(temp);
+        }
         
+        minionsForCleanup = new List<GameObject>();
     }
 
     // Update is called once per frame
     void Update()
     {
+        SpawnMinions(3);
+
         // basically reverse everything in this for hostile minions
-        foreach(var minion in goodMinions)
+        foreach(var minion in goodMinions) // iterate through list of minions
         {
-            // iterate through list of minions
-            // check if at target
-            // if at target, find next node and update target
-            if (!minion.GetComponent<MinionManager>().IsTargetPositionReached()) // if we are not at target position
+            // perform health check before any more logic takes place
+            if (minion.GetComponent<MinionManager>().HealthCheck()) // minion is alive
             {
-                // do nothing? -- Minion Manager handles movement
-            }
-            else // if we are at target position
-            {
-                Vector2 oldTarget = minion.GetComponent<MinionManager>().GetTargetPosition();
-
-                // make sure target is not the end point
-                if (oldTarget != possibleLevels[0].GetNodes()[possibleLevels[0].GetNodes().Length - 1].GetPosition().GetXY())
+                // check if at target
+                // if at target, find next node and update target
+                if (!minion.GetComponent<MinionManager>().IsTargetPositionReached()) // if we are not at target position
                 {
-                    // iterate through nodes to find next node
-                    foreach (var node in possibleLevels[0].GetNodes())
+                    // do nothing? -- Minion Manager handles movement
+                }
+                else // if we are at target position
+                {
+                    Vector2 oldTarget = minion.GetComponent<MinionManager>().GetTargetPosition();
+
+                    // make sure target is not the end point
+                    if (oldTarget != possibleLevels[0].GetNodes()[possibleLevels[0].GetNodes().Length - 1].GetPosition().GetXY())
                     {
-                        // is this the current target node (old node)
-                        if (oldTarget == node.GetPosition().GetXY())
+                        // iterate through nodes to find next node
+                        foreach (var node in possibleLevels[0].GetNodes())
                         {
-                            // only really does something if tempNodes has more than one node in it, otherwise will just get next node
-                            int[] indexes = node.GetNextNodeIndexes();
+                            // is this the current target node (old node)
+                            if (oldTarget == node.GetPosition().GetXY())
+                            {
+                                // only really does something if tempNodes has more than one node in it, otherwise will just get next node
+                                int[] indexes = node.GetNextNodeIndexes();
 
-                            int indexesIndex = Random.Range(0, indexes.Length);
-                            int index = indexes[indexesIndex];
+                                int indexesIndex = Random.Range(0, indexes.Length);
+                                int index = indexes[indexesIndex];
 
-                            // update the minion target and reset atTarget check on minion
-                            minion.GetComponent<MinionManager>().UpdateTargetPosition(possibleLevels[0].GetNodes()[index].GetPosition().GetXY()/*node.GetNextConnectedNodes()[index].GetPosition().GetXY()*/);
-                            minion.GetComponent<MinionManager>().ResetAtTarget();
-                            // after target node + atTarget updated break loop to do everything again with next minion
-                            break;
+                                // update the minion target and reset atTarget check on minion
+                                minion.GetComponent<MinionManager>().UpdateTargetPosition(possibleLevels[0].GetNodes()[index].GetPosition().GetXY()/*node.GetNextConnectedNodes()[index].GetPosition().GetXY()*/);
+                                minion.GetComponent<MinionManager>().ResetAtTarget();
+                                // after target node + atTarget updated break loop to do everything again with next minion
+                                break;
+                            }
                         }
                     }
+                    else // minion is at target in the final node
+                    {
+                        // do stuff? delete minion? damage enemy champion?
+                    }
                 }
-                else // minion is at target in the final node
-                {
-                    // do stuff? delete minion? damage enemy champion?
-                }
+            }
+            else // minion is dead
+            {
+                //GameObject temp = minion;
+                //goodMinions.Remove(minion);
+
+                //DestroyImmediate(minion);
+                // should a temp object be created? will removing minion from list cause an issue when trying to destroy that object?
+
+                // add dead minions to list for cleanup at end of frame
+                minionsForCleanup.Add(minion);
             }
         }
 
         foreach(var minion in hostileMinions)
         {
 
+        }
+
+        MinionCleanup();
+    }
+
+    void MinionCleanup()
+    {
+        foreach (var minion in minionsForCleanup)
+        {
+            GameObject temp = null;
+
+            bool minionRemoved = false;
+            // Friendly minions
+            for (int i = goodMinions.Count - 1; i >= 0; i--)
+            {
+                // if minion in focus is the minion we are looking to cleanup right now, remove and destroy
+                if (minion == goodMinions[i])
+                {
+                    temp = goodMinions[i];
+                    goodMinions.Remove(minion);
+                    Destroy(temp);
+                    minionRemoved = true;
+                    break;
+                }
+            }
+
+            // hostile minions
+            if (!minionRemoved)
+            {
+                for (int i = hostileMinions.Count - 1; i >= 0; i--)
+                {
+                    // if minion in focus is the minion we are looking to cleanup right now, remove and destroy
+                    if (minion == hostileMinions[i])
+                    {
+                        temp = hostileMinions[i];
+                        hostileMinions.Remove(minion);
+                        Destroy(temp);
+                        minionRemoved = true;
+                        break;
+                    }
+                }
+            }
+
+            // turrets
+            foreach (var turret in turrets)
+            {
+                // find which turrets have this minion in target list and remove from lists
+                turret.GetComponent<TurretManager>().CheckNearbyMinions(minion);
+            }
+        }
+        minionsForCleanup = new List<GameObject>();
+    }
+
+    void SpawnMinions(int _numRequired)
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            Vector2 tempVec = possibleLevels[0].GetSpawnPoints().GetFriendlySpawnPoints()[0].GetPosition().GetXY();
+
+            for (int i = 0; i < _numRequired; i++)
+            {
+                float tempVecY = tempVec.y - (i * 0.2f);
+                tempVec.y = tempVecY;
+                GameObject temp = Instantiate(goodMinionPrefab, tempVec, Quaternion.identity, transform);
+                temp.AddComponent<MinionManager>();
+                temp.GetComponent<MinionManager>().SetupMinion(possibleLevels[0].GetNodes()[0].GetPosition().GetXY());
+                goodMinions.Add(temp);
+            }
         }
     }
 }

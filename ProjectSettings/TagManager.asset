@@ -6,6 +6,7 @@ TagManager:
   tags:
   - GoodMinion
   - HostileMinion
+  - TurretShot
   layers:
   - Default
   - TransparentFX
