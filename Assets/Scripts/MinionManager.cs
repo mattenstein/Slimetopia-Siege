@@ -8,15 +8,21 @@ using UnityEngine;
 public class MinionManager : MonoBehaviour
 {
     Vector2 currentTargetPosition;
+    Vector2 currentTowerTargetPosition;
     float moveSpeed = 0.5f;
     bool atTarget = false;
+    bool hasTowerTarget = false;
+    bool atTowerTarget = false;
     float targetTolerance = 0.1f;
     float minionHealth = 1.0f;
+    float attackSpeed = 0.15f;
+    float attackDamage = 0.1f;
+    float maxAttackRange = 0.5f;
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        currentTowerTargetPosition = new Vector2();
     }
 
     // Update is called once per frame
@@ -37,10 +43,29 @@ public class MinionManager : MonoBehaviour
 
     void MoveTowardsTargetPosition()
     {
-        if (!atTarget)
+        if (!hasTowerTarget) // not moving towards/at target set by tower
         {
-            transform.position = Vector2.MoveTowards(transform.position, currentTargetPosition, moveSpeed * Time.deltaTime);
-            if (Vector2.Distance(transform.position, currentTargetPosition) < targetTolerance) atTarget = true;
+            if (!atTarget) // if we are not at the target, move
+            {
+                transform.position = Vector2.MoveTowards(transform.position, currentTargetPosition, moveSpeed * Time.deltaTime);
+                if (Vector2.Distance(transform.position, currentTargetPosition) < targetTolerance) atTarget = true;
+            }
+            else // if we are at the target, do not move
+            {
+
+            }
+        }
+        else //moving towards/at target set by tower
+        {
+            if (!atTowerTarget) // if we are not at the target, move
+            {
+                transform.position = Vector2.MoveTowards(transform.position, currentTowerTargetPosition, moveSpeed * Time.deltaTime);
+                if (Vector2.Distance(transform.position, currentTowerTargetPosition) < targetTolerance) atTowerTarget = true;
+            }
+            else // if we are at the target, do not move
+            {
+
+            }
         }
     }
 
@@ -75,5 +100,20 @@ public class MinionManager : MonoBehaviour
             return false;
         }
         return true;
+    }
+
+    public void SetHasTowerTarget(bool _hasTowerTarget)
+    {
+        if (_hasTowerTarget == false) // if we have no target set by tower (tower destroyed), reset all data relating to a target position set by tower
+        {
+            atTowerTarget = false;
+            UpdateTowerTargetPosition(new Vector2());
+        }
+        hasTowerTarget = _hasTowerTarget;
+    }
+
+    public void UpdateTowerTargetPosition(Vector2 _towerTargetPosition)
+    {
+        currentTowerTargetPosition = _towerTargetPosition;
     }
 }

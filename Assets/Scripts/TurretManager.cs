@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using UnityEditor.Rendering;
 using UnityEngine;
 
 /// <summary>
@@ -14,11 +15,12 @@ public class TurretManager : MonoBehaviour
     float turretHealth = 1.0f;
     bool hostileTurret = false;
     float shotResetTimer = 0.0f;
+    float maxRadius = 0.0f;
 
     // Start is called before the first frame update
     void Start()
     {
-        
+        maxRadius = this.gameObject.GetComponent<CircleCollider2D>().radius;
     }
 
     // Update is called once per frame
@@ -54,6 +56,9 @@ public class TurretManager : MonoBehaviour
             nearbyMinions.Add(collision.gameObject);
             // add logic to let each minion know they are within range of a turret and need to stop within range of turret to attack it.
             // give each minion a position within range of turret to move to as their target?
+
+            collision.gameObject.GetComponent<MinionManager>().UpdateTowerTargetPosition(FindPointInRadius());
+            collision.gameObject.GetComponent<MinionManager>().SetHasTowerTarget(true);
         }
     }
 
@@ -106,7 +111,7 @@ public class TurretManager : MonoBehaviour
         // let each minion know they can move to next node
         foreach (var minion in nearbyMinions)
         {
-
+            minion.GetComponent<MinionManager>().SetHasTowerTarget(false);
         }
     }
 
@@ -137,5 +142,19 @@ public class TurretManager : MonoBehaviour
                 return;
             }
         }
+    }
+
+    // Find point within radius of turret for minion to move to -- This will act as donut shape rather than circle, meaning minions will have a minimum distance to turret
+    Vector2 FindPointInRadius()
+    {
+        Vector2 randomDirection = Random.insideUnitCircle.normalized;
+        float minRadiusSq = 0.1f * 0.1f;
+        float maxRadiusSq = maxRadius * maxRadius;
+
+        float randomDistance = Mathf.Sqrt(Random.value * (maxRadiusSq - minRadiusSq) + minRadiusSq);
+
+        Vector2 center = transform.position;
+
+        return center + (randomDirection * randomDistance);
     }
 }
